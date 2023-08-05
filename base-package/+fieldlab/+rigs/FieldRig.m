@@ -9,9 +9,35 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             
             % This is the simulation A/D board (i.e., not real). We'll add
             % the real one later...
-            daq = HekaSimulationDaqController();
+ %           daq = HekaSimulationDaqController();
+ %           obj.daqController = daq;
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
+            % Add the NiDAQ A/D board.
+            daq = NiDaqController();
             obj.daqController = daq;
             
+%            mea = manookinlab.devices.MEADevice('host', '192.168.1.100'); % this might need to be .1.100
+            mea = manookinlab.devices.MEADevice(9001);
+            obj.addDevice(mea);
+
+%            rigDev = manookinlab.devices.RigPropertyDevice('ManookinLab','SimulatedMEA');
+%            obj.addDevice(rigDev);
+            
+            %trigger = edu.washington.riekelab.devices.TriggerDevice();
+            %trigger.bindStream(daq.getStream('doport0'));
+            %trigger.bindStream(daq.getStream('ao1'));
+            %daq.getStream('doport0').setBitPosition(trigger, 0);
+            %obj.addDevice(trigger);
+           
+            %add an analog trigger device to simulate the MEA.
+            trigger = UnitConvertingDevice('ExternalTrigger','V').bindStream(daq.getStream('ao1'));
+            obj.addDevice(trigger);
+            
+            
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
+
+           
             % Rig name and laboratory. This is optional, but can be useful
             % for setting rig-specific parameters. Also, if the user
             % forgets to save the rig description, you will automatically
@@ -27,11 +53,25 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             % This records the flips for each stimulus frame on the DAQ
             % clock. We use this to determine the timing of each stimulus
             % frame presented to the tissue.
-            frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
+            frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai1'));
             obj.addDevice(frameMonitor);
             
             % This connects to Stage as a device. 
-            display_device = manookinlab.devices.VideoDevice('host', '192.168.0.102', 'micronsPerPixel', 3.8);
+            display_device = manookinlab.devices.VideoDevice('host', '192.168.1.4', 'micronsPerPixel', 3.8);
+            
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             %microdisplay = riekelab.devices.MicrodisplayDevice('gammaRamps', ramps, 'micronsPerPixel', 3.8, 'comPort', 'COM3', 'host', '10.47.120.58');
+%             ramps = containers.Map();
+%             ramps('minimum') = linspace(0, 65535, 256);
+%             ramps('low')     = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_low_gamma_ramp.txt'));
+%             ramps('medium')  = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_medium_gamma_ramp.txt'));
+%             ramps('high')    = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_high_gamma_ramp.txt'));
+%             ramps('maximum') = linspace(0, 65535, 256);
+%             microdisplay = riekelab.devices.MicrodisplayDevice('gammaRamps', ramps, 'micronsPerPixel', 3.8, 'comPort', 'COM3', 'host', '10.47.120.58');
+%             microdisplay.bindStream(daq.getStream('doport1'));
+%             daq.getStream('doport1').setBitPosition(microdisplay, 15);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
             
             % Load the spectra.
             myspect = containers.Map( ...
@@ -61,7 +101,7 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             obj.addDevice(display_device);
             
             % Add the filter wheel (motorized filter wheel from ThorLabs)
-            filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM13');
+            filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM3');
             obj.addDevice(filterWheel);
         end
     end
