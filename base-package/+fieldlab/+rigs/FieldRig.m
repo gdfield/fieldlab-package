@@ -7,17 +7,11 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;
             
-            % This is the simulation A/D board (i.e., not real). We'll add
-            % the real one later...
- %           daq = HekaSimulationDaqController();
- %           obj.daqController = daq;
- 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
             % Add the NiDAQ A/D board.
             daq = NiDaqController();
             obj.daqController = daq;
             
-%            mea = manookinlab.devices.MEADevice('host', '192.168.1.100'); % this might need to be .1.100
+%            mea = manookinlab.devices.MEADevice('host', '192.168.1.1'); % this might need to be .1.100
             mea = manookinlab.devices.MEADevice(9001);
             obj.addDevice(mea);
 
@@ -56,30 +50,43 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai1'));
             obj.addDevice(frameMonitor);
             
+            % Load Gamma Tables
+             ramps = containers.Map();
+             ramps('red') = 65535 * importdata('C:\Users\Public\Documents\Calibration\channel_1_green_gamma_ramp.txt', '\t');
+             ramps('green') = 65535 * importdata('C:\Users\Public\Documents\Calibration\channel_2_uv_gamma_ramp.txt', '\t');
+             ramps('blue') = 65535 * importdata('C:\Users\Public\Documents\Calibration\channel_3_blue_gamma_ramp.txt', '\t');
+             
+%              ramps('red')    = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'suction', 'red_gamma_ramp.txt'));
+%              ramps('green')  = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'suction', 'green_gamma_ramp.txt'));
+%              ramps('blue')   = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'suction', 'blue_gamma_ramp.txt'));
+
             % This connects to Stage as a device. 
-            display_device = manookinlab.devices.VideoDevice('host', '192.168.1.4', 'micronsPerPixel', 3.8);
+%             display_device = manookinlab.devices.VideoDevice(...
+%                 'host', '10.4.192.148',...
+%                 'micronsPerPixel', 1.28,...
+%                 'gammaRamps', ramps);
+
+             display_device = manookinlab.devices.LcrVideoDevice(...
+                  'micronsPerPixel', 1.28, ...
+                  'host', '10.4.192.148', ...
+                  'gammaRamps', ramps,...
+                  'customLightEngine',false);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%             %microdisplay = riekelab.devices.MicrodisplayDevice('gammaRamps', ramps, 'micronsPerPixel', 3.8, 'comPort', 'COM3', 'host', '10.47.120.58');
-%             ramps = containers.Map();
-%             ramps('minimum') = linspace(0, 65535, 256);
-%             ramps('low')     = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_low_gamma_ramp.txt'));
-%             ramps('medium')  = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_medium_gamma_ramp.txt'));
-%             ramps('high')    = 65535 * importdata(riekelab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_high_gamma_ramp.txt'));
-%             ramps('maximum') = linspace(0, 65535, 256);
-%             microdisplay = riekelab.devices.MicrodisplayDevice('gammaRamps', ramps, 'micronsPerPixel', 3.8, 'comPort', 'COM3', 'host', '10.47.120.58');
-%             microdisplay.bindStream(daq.getStream('doport1'));
-%             daq.getStream('doport1').setBitPosition(microdisplay, 15);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            
+           
             % Load the spectra.
             myspect = containers.Map( ...
-                {'white', 'red', 'green', 'blue'}, { ...
-                importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_white_spectrum.txt')), ...
-                importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_red_spectrum.txt')), ...
-                importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_green_spectrum.txt')), ...
-                importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_blue_spectrum.txt'))});
+                {'red', 'green', 'blue'}, { ...
+                importdata('C:\Users\Public\Documents\Calibration\channel_1_green_spec.txt', '\t'), ...
+                importdata('C:\Users\Public\Documents\Calibration\channel_2_uv_spec.txt', '\t'), ...
+                importdata('C:\Users\Public\Documents\Calibration\channel_3_blue_spec.txt', '\t')});
+
+                %             myspect = containers.Map( ...
+%                 {'white', 'red', 'green', 'blue'}, { ...
+%                 importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_white_spectrum.txt')), ...
+%                 importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_red_spectrum.txt')), ...
+%                 importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_green_spectrum.txt')), ...
+%                 importdata(manookinlab.Package.getCalibrationResource('rigs', 'mea', 'microdisplay_below_blue_spectrum.txt'))});
             
             display_device.addResource('spectrum', myspect);
             
