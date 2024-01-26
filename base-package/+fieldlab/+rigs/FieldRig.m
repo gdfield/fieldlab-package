@@ -11,6 +11,8 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             daq = NiDaqController();
             obj.daqController = daq;
             
+%            daq = HekaSimulationDaqController();
+%            obj.daqController = daq;            
 %            mea = manookinlab.devices.MEADevice('host', '192.168.1.1'); % this might need to be .1.100
             mea = manookinlab.devices.MEADevice(9001);
             obj.addDevice(mea);
@@ -108,8 +110,8 @@ classdef FieldRig < symphonyui.core.descriptions.RigDescription
             obj.addDevice(display_device);
             
             % Add the filter wheel (motorized filter wheel from ThorLabs)
-            filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM3');
-            obj.addDevice(filterWheel);
+%             filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM3');
+%             obj.addDevice(filterWheel);
         end
     end
     
