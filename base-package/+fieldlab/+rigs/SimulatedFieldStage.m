@@ -4,7 +4,9 @@ classdef SimulatedFieldStage < symphonyui.core.descriptions.RigDescription
         
         function obj = SimulatedFieldStage()
             import symphonyui.builtin.daqs.*;
-            import symphonyui.builtin.devices.*;
+            import s
+            
+            ymphonyui.builtin.devices.*;
             import symphonyui.core.*;
             
             daq = HekaSimulationDaqController();
@@ -16,7 +18,9 @@ classdef SimulatedFieldStage < symphonyui.core.descriptions.RigDescription
             frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
             obj.addDevice(frameMonitor);
             
-            geneticVideoDisplay = manookinlab.devices.VideoDevice('micronsPerPixel', 2.4);                 
+            geneticVideoDisplay = manookinlab.devices.VideoDevice(...
+                'micronsPerPixel', 2.4,...
+                'host', '10.4.192.148');                 
             obj.addDevice(geneticVideoDisplay);
             
         end
