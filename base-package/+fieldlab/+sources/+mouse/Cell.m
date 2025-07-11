@@ -16,7 +16,8 @@ classdef Cell < fieldlab.sources.Cell
                     {'S cone', 'M cone', 'rod'}})), ...
                 'description', 'The confirmed type of the recorded cell');
             
-            obj.addAllowableParentType('edu.washington.riekelab.sources.mouse.Preparation');
+            obj.addAllowableParentType('fieldlab.sources.mouse.Preparation');
+%            obj.addAllowableParentType('edu.washington.riekelab.sources.mouse.Preparation');
         end
         
     end

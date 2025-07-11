@@ -5,7 +5,7 @@ classdef Preparation < fieldlab.sources.Preparation
         function obj = Preparation()
             import symphonyui.core.*;
             
-            obj.addAllowableParentType('manookinlab.sources.primate.Primate');
+            obj.addAllowableParentType('fieldlab.sources.marmoset.Marmoset');
         end
         
     end
