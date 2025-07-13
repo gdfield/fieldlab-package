@@ -17,7 +17,7 @@ classdef FilterWheelDevice < symphonyui.core.Device
             
             ip = inputParser();
             ip.addParameter('comPort', 'COM13', @ischar);
-            ip.addParameter('NDF', 4.0, @isnumeric);
+            ip.addParameter('NDF', 5.0, @isnumeric);
             ip.parse(varargin{:});
             
             cobj = Symphony.Core.UnitConvertingExternalDevice('FilterWheel', 'ThorLabs', Symphony.Core.Measurement(0, symphonyui.core.Measurement.UNITLESS));

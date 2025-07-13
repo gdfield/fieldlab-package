@@ -36,7 +36,7 @@ classdef FieldMEARig1 < symphonyui.core.descriptions.RigDescription
             
              %creat lightCrafter object
              lightCrafter = manookinlab.devices.LcrVideoDevice(...
-                'micronsPerPixel', 4.75, ...
+                'micronsPerPixel', 4.0, ...
                 'gammaRamps', ramps, ...
                 'host', '192.168.1.6', ...
                 'local_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\',...
@@ -68,7 +68,7 @@ classdef FieldMEARig1 < symphonyui.core.descriptions.RigDescription
             
             % add the filter wheel calibrations
             lightCrafter.addConfigurationSetting('ndfs', {}, ...
-                'type', PropertyType('cellstr', 'row', {'FW00', 'FW05', 'FW10', 'FW20', 'FW30', 'FW40'}));
+                'type', PropertyType('cellstr', 'row', {'FW10', 'FW20', 'FW30', 'FW40', 'FW50', 'FW00'}));
             lightCrafter.addResource('ndfAttenuations', containers.Map( ...
                 {'auto','red', 'green', 'blue'}, { ...
                 containers.Map( ...
@@ -126,14 +126,14 @@ classdef FieldMEARig1 < symphonyui.core.descriptions.RigDescription
             
            % Add the filter wheel (motorized filter wheel from ThorLabs)
            %filterWheel = manookinlab.devices.FilterWheelDevice('comPort', 'COM5');
-          % filterWheel = edu.washington.riekelab.devices.FilterWheelDevice('comPort', 'COM5', 'ndfValues', [1.0, 2.0, 3.0, 4.0, 5.0, 0]);
-            filterWheel = edu.washington.riekelab.devices.FilterWheelDevice('comPort', 'COM5');
+           filterWheel = edu.washington.riekelab.devices.FilterWheelDevice('comPort', 'COM5', 'ndfValues', [1.0, 2.0, 3.0, 4.0, 5.0, 0]);
+          %  filterWheel = edu.washington.riekelab.devices.FilterWheelDevice('comPort', 'COM5');
           %filterWheel = fieldlab.devices.FilterWheelDevice('comPort', 'COM5'); 
            
            % Binding the filter wheel to an unused stream only so its configuration settings are written to each epoch.
-%            filterWheel.bindStream(daq.getStream('doport1'));
-%            daq.getStream('doport1').setBitPosition(filterWheel, 0);
-%            obj.addDevice(filterWheel);    
+            filterWheel.bindStream(daq.getStream('doport0'));
+            daq.getStream('doport0').setBitPosition(filterWheel, 7);
+            obj.addDevice(filterWheel);    
 %             
            % Add the MEA device controller. This waits for the stream from Vision, strips of the header, and runs the block.
            mea = manookinlab.devices.MEADevice(9001);
