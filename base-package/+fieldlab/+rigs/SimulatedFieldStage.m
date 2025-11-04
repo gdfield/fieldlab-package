@@ -15,7 +15,7 @@ classdef SimulatedFieldStage < symphonyui.core.descriptions.RigDescription
             amp1 = MultiClampDevice('Amp1', 1).bindStream(daq.getStream('ao0')).bindStream(daq.getStream('ai0'));
             obj.addDevice(amp1);
                         
-            frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
+            frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai1'));
             obj.addDevice(frameMonitor);
             
             geneticVideoDisplay = manookinlab.devices.VideoDevice(...
