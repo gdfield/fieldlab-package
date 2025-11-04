@@ -28,7 +28,7 @@ classdef Cell < fieldlab.sources.Cell
             obj.addProperty('locationY', '');
             
             
-            obj.addAllowableParentType('manookinlab.sources.primate.Preparation');
+            obj.addAllowableParentType('fieldlab.sources.marmoset.Preparation');
         end
         
     end

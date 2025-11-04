@@ -4,9 +4,6 @@ classdef SimulatedFieldStage < symphonyui.core.descriptions.RigDescription
         
         function obj = SimulatedFieldStage()
             import symphonyui.builtin.daqs.*;
-            import s
-            
-            ymphonyui.builtin.devices.*;
             import symphonyui.core.*;
             
             daq = HekaSimulationDaqController();
