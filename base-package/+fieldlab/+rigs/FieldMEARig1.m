@@ -30,19 +30,18 @@ classdef FieldMEARig1 < symphonyui.core.descriptions.RigDescription
 
             % Load Gamma Tables
             ramps = containers.Map();
-            ramps('red')    = 65535 * importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'channel_1_green_gamma_ramp.txt'));
-            ramps('green')  = 65535 * importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'channel_2_uv_gamma_ramp.txt'));
+            ramps('red')    = 65535 * importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'channel_1_red_gamma_ramp.txt'));
+            ramps('green')  = 65535 * importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'channel_2_green_gamma_ramp.txt'));
             ramps('blue')   = 65535 * importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'channel_3_blue_gamma_ramp.txt'));     
             
              %creat lightCrafter object
              lightCrafter = manookinlab.devices.LcrVideoDevice(...
-                'micronsPerPixel', 4.0, ...
+                'micronsPerPixel', 2.3, ...
+                'host', '192.168.1.24', ...
                 'gammaRamps', ramps, ...
-                'host', '192.168.1.6', ...
                 'local_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\',...
-                'stage_movie_directory','\\COPLAND\Users\Public\Documents\GitRepos\Symphony2\movies\');
-            
-            
+                'stage_movie_directory','C:\Users\Public\Documents\GitRepos\Symphony2\movies\');              
+           
             
             % load the power/flux measurements from the calibration
             lightCrafter.addResource('fluxFactorPaths', containers.Map( ...
@@ -56,15 +55,15 @@ classdef FieldMEARig1 < symphonyui.core.descriptions.RigDescription
             % load the emmision spectra of the LEDs
             myspect = containers.Map( ...
                 {'auto', 'red', 'green', 'blue'}, { ...
-                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'lightcrafter_below_auto_spectrum.txt')), ...
-                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'lightcrafter_below_green_spectrum.txt')), ...
-                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'lightcrafter_below_uv_spectrum.txt')), ...
-                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'lightcrafter_below_blue_spectrum.txt'))});           
+                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'auto_LED_spectrum_data.txt')), ...
+                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'red_LED_spectrum_data.txt')), ...
+                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'green_LED_spectrum_data.txt')), ...
+                importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'blue_LED_spectrum_data.txt'))});           
             lightCrafter.addResource('spectrum', myspect);
             
             % Binding the lightCrafter to an unused stream only so its configuration settings are written to each epoch.
             lightCrafter.bindStream(daq.getStream('doport0'));
-            daq.getStream('doport0').setBitPosition(lightCrafter, 1);
+            daq.getStream('doport0').setBitPosition(lightCrafter, 3);
             
             % add the filter wheel calibrations
             lightCrafter.addConfigurationSetting('ndfs', {}, ...
@@ -114,10 +113,10 @@ classdef FieldMEARig1 < symphonyui.core.descriptions.RigDescription
             obj.addDevice(frameMonitor);            
              
            % Add a device for external triggering to synchronize MEA DAQ clock with Symphony DAQ clock.
-%             trigger = riekelab.devices.TriggerDevice();
-%             trigger.bindStream(daq.getStream('doport0'));
-%             daq.getStream('doport0').setBitPosition(trigger, 0);
-%             obj.addDevice(trigger);         
+%              trigger = riekelab.devices.TriggerDevice();
+%              trigger.bindStream(daq.getStream('doport0'));
+%              daq.getStream('doport0').setBitPosition(trigger, 1);
+%              obj.addDevice(trigger);         
            
             %OLD METHOD FOR DOING THE SAME THING AS ABOVE (SYNC MEA DAQ W/ SYMPHONY).
               trigger = UnitConvertingDevice('ExternalTrigger','V').bindStream(daq.getStream('ao1'));
