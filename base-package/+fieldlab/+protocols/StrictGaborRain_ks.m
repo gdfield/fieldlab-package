@@ -22,6 +22,9 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
         lifetimeRange = [30 60]         % Duration in frames (e.g., 0.5s - 1.0s)
         
         numberOfAverages = uint16(20)   % Number of epochs
+        
+        % Rig Overrides
+        canvasOverride = [0 0]          % Override canvas size [width height] (0=ignore)
     end
     
     properties (Hidden)
@@ -47,6 +50,7 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
         temporalFreqsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         orientationsType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
         lifetimeRangeType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
+        canvasOverrideType = symphonyui.core.PropertyType('denserealdouble', 'matrix')
     end
     
     methods
@@ -67,9 +71,11 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
             reportedSize = stageDev.getCanvasSize();
             
             % --- CANVAS SIZE FIX ---
-            % LightCrafter 4500 often reports incorrect canvas size (e.g. 640x480).
-            % We override it here to ensure grid math is correct.
-            if reportedSize(1) <= 640
+            % 1. Check if user manually overrode the size
+            if obj.canvasOverride(1) > 0
+                obj.actualCanvasSize = obj.canvasOverride;
+            % 2. Check for LightCrafter 4500 bad report (e.g. 640x480)
+            elseif reportedSize(1) <= 640
                 obj.actualCanvasSize = [1280 800]; 
             else
                 obj.actualCanvasSize = reportedSize;
@@ -256,9 +262,14 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
                             agents(freeAgentIdx).size = finalSize;
                             
                             % Position Calculation
-                            % Center (0,0). xLeft is negative.
-                            xLeft = -canvasSizePix(1)/2;
-                            yBottom = -canvasSizePix(2)/2; 
+                            % Center (0,0). 
+                            % FIX: Calculate xLeft/yBottom based on GRID SIZE, not CANVAS SIZE.
+                            % This ensures the grid is centered on (0,0) regardless of stixel count.
+                            totalGridWidth = obj.numXStixels * stixelSizePix;
+                            totalGridHeight = obj.numYStixels * stixelSizePix;
+                            
+                            xLeft = -totalGridWidth / 2;
+                            yBottom = -totalGridHeight / 2;
                             
                             centerX = xLeft + (c-1)*stixelSizePix + stixelSizePix/2;
                             centerY = yBottom + (r-1)*stixelSizePix + stixelSizePix/2;
