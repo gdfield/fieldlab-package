@@ -31,7 +31,7 @@ classdef BattleStation < symphonyui.core.descriptions.RigDescription
             obj.addDevice(rigDev);
             
             % This connects to Stage as a device. 
-            display_device = manookinlab.devices.VideoDevice('host', '10.4.192.108', 'micronsPerPixel', 2.0);         
+            display_device = manookinlab.devices.VideoDevice('host', '192.168.1.2', 'micronsPerPixel', 2.0);         
 
             obj.addDevice(display_device);
                       
