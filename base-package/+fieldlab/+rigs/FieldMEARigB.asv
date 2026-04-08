@@ -11,7 +11,7 @@ classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
                      
              % SIMULATION
              %daq = HekaSimulationDaqController();
-             %obj.daqController = daq; 
+             obj.daqController = daq; 
              
             % Add the NiDAQ A/D board.
             daq = NiDaqController();
@@ -28,8 +28,8 @@ classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
             % This records the flips for each stimulus frame on the DAQ
             % clock. We use this to determine the timing of each stimulus
             % frame presented to the tissue.
-              frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai1'));
-              obj.addDevice(frameMonitor);            
+%              frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai1'));
+%              obj.addDevice(frameMonitor);            
              
              mea = manookinlab.devices.MEADevice(9001);
              obj.addDevice(mea);
@@ -49,8 +49,8 @@ classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
 %            rigDev = manookinlab.devices.RigPropertyDevice('FieldLab','FieldRig');
 %            obj.addDevice(rigDev);
             
-            %frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
-            %obj.addDevice(frameMonitor);
+            frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai7'));
+            obj.addDevice(frameMonitor);
             
             geneticVideoDisplay = manookinlab.devices.VideoDevice(...
                 'micronsPerPixel', 2.4,...
