@@ -1,4 +1,4 @@
-classdef Alignment_ks < manookinlab.protocols.ManookinLabStageProtocol
+classdef Alignment_ks < common.protocols.CommonStageProtocol
     
     properties
         amp                             % Output amplifier
@@ -12,7 +12,7 @@ classdef Alignment_ks < manookinlab.protocols.ManookinLabStageProtocol
     
     properties (Hidden)
         onlineAnalysis = 'none'
-        ampType
+        %ampType \\ defined in CommonProtocol A_N_
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
     end
     
@@ -26,7 +26,7 @@ classdef Alignment_ks < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function prepareRun(obj)
-            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            prepareRun@common.protocols.CommonStageProtocol(obj);
            
         end
         
@@ -85,7 +85,7 @@ classdef Alignment_ks < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function prepareEpoch(obj, epoch)
-            prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            prepareEpoch@common.protocols.CommonStageProtocol(obj, epoch);
             % Save the canvas size just for records
             epoch.addParameter('canvasSize', obj.canvasSize);
         end

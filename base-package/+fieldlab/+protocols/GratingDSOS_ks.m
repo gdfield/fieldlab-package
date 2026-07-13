@@ -1,4 +1,4 @@
-classdef GratingDSOS_ks < manookinlab.protocols.ManookinLabStageProtocol
+classdef GratingDSOS_ks < common.protocols.CommonStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Grating leading duration (ms)
@@ -21,7 +21,7 @@ classdef GratingDSOS_ks < manookinlab.protocols.ManookinLabStageProtocol
     end
     
     properties (Hidden)
-        ampType
+        %ampType \\  defined in CommonProtocol A_N_
         apertureClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave', 'squarewave'})
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'drifting', 'reversing'})
@@ -55,7 +55,7 @@ classdef GratingDSOS_ks < manookinlab.protocols.ManookinLabStageProtocol
             numConditions = numel(orientGrid);
             obj.numberOfAverages = obj.numReps * numConditions;
             
-            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            prepareRun@common.protocols.CommonStageProtocol(obj);
             
             if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
@@ -186,7 +186,7 @@ classdef GratingDSOS_ks < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function prepareEpoch(obj, epoch)
-            prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            prepareEpoch@common.protocols.CommonStageProtocol(obj, epoch);
             
             currentEpoch = obj.numEpochsCompleted + 1;
             

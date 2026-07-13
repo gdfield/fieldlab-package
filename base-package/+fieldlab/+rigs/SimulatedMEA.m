@@ -6,15 +6,16 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             import symphonyui.builtin.daqs.*;
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;
+            import edu.washington.*;
             
             % This is the simulation A/D board (i.e., not real). We'll add
             % the real one later...
-            daq = HekaSimulationDaqController();
+%            daq = NiSimulationDaqController();
+            daq = NiDaqController();
             obj.daqController = daq;
  
-%            mea = manookinlab.devices.MEADevice('host', '192.168.1.1'); % this might need to be .1.100
-            mea = manookinlab.devices.MEADevice(9001);
-            obj.addDevice(mea);
+%            mea = manookinlab.devices.MEADevice(9001);
+%            obj.addDevice(mea);
 
             
             %add an analog trigger device to simulate the MEA.
@@ -36,18 +37,11 @@ classdef SimulatedMEA < symphonyui.core.descriptions.RigDescription
             % for setting rig-specific parameters. Also, if the user
             % forgets to save the rig description, you will automatically
             % have a record of it saved in your data file.
-            rigDev = manookinlab.devices.RigPropertyDevice('FieldLab','FieldRig');
-            obj.addDevice(rigDev);
+%            rigDev = manookinlab.devices.RigPropertyDevice('FieldLab','FieldRig');
+%            obj.addDevice(rigDev);
             
             % This connects to Stage as a device. 
-%            display_device = manookinlab.devices.VideoDevice('micronsPerPixel', 2.0);
-            display_device = manookinlab.devices.VideoDevice('host', '10.4.192.108', 'micronsPerPixel', 2.0);         
-
-            
-%              display_device = manookinlab.devices.LcrVideoDevice(...
-%                   'micronsPerPixel', 1.28, ...
-%                   'host', '10.4.192.148', ...
-%                   'customLightEngine',false);
+            display_device = manookinlab.devices.VideoDevice('host', '192.168.0.3');         
             obj.addDevice(display_device);
             
             

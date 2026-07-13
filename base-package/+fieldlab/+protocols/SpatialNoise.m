@@ -1,10 +1,9 @@
-classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
+classdef SpatialNoise < manookinlab.protocols.ManookinLabStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Noise leading duration (ms)
         uniqueTime = 160000             % Duration of unique noise sequence (ms)
-        repeatTime = 20000              % Duration of repeating sequence (ms)
-        numberOfRepeatBlocks = 5        % Number of chunks to divide the repeat sequence into
+        repeatTime = 20000              % Duration of repeating sequence at end of epoch (ms)
         tailTime = 250                  % Noise trailing duration (ms)
         contrast = 1
         stixelSizes = [90,90]           % Edge length of stixel (microns)
@@ -24,16 +23,12 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
     end
     
     properties (Hidden)
-        %ampType defined in CommonProtocol A_N_
+        ampType
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY','B','Y','S-iso','LM-iso'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
         frameDwellsType = symphonyui.core.PropertyType('denserealdouble','matrix')
         randomSeedSequenceType = symphonyui.core.PropertyType('char','row',{'every epoch','every 2 epochs','every 3 epochs','repeat seed'})
-        
-        % Ensure the GUI treats this as a number, not a string
-        numberOfRepeatBlocksType = symphonyui.core.PropertyType('denserealdouble', 'scalar'); 
-
         stixelSize
         stepsPerStixel
         numXStixels
@@ -56,40 +51,37 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
         unique_frames
         repeat_frames
         time_multiple
-        noiseSequenceType % Binary mask (0=Unique, 1=Repeat)
     end
     
     properties (Dependent, SetAccess = private)
-        %amp2                            % Secondary amplifier \\ defined in CommonProtocol A_N_
+        amp2                            % Secondary amplifier
     end
     
     methods
         function didSetRig(obj)
-            didSetRig@common.protocols.CommonStageProtocol(obj);
+            didSetRig@manookinlab.protocols.ManookinLabStageProtocol(obj);
 
             [obj.amp, obj.ampType] = obj.createDeviceNamesProperty('Amp');
         end
 
         function prepareRun(obj)
-            prepareRun@common.protocols.CommonStageProtocol(obj);
+            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
             obj.pre_frames = round(obj.preTime * 1e-3 * 60.0);
-            
-            % Calculate total frames for unique and repeat
             obj.unique_frames = round(obj.uniqueTime * 1e-3 * 60.0);
             obj.repeat_frames = round(obj.repeatTime * 1e-3 * 60.0);
 
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if strcmpi(obj.stageClass, 'LightCrafter')
                 obj.chromaticClass = 'achromatic';
                 obj.frameDwells = uint16(ones(size(obj.frameDwells)));
             end
             
             try
                 obj.time_multiple = obj.rig.getDevice('Stage').getExpectedRefreshRate() / obj.rig.getDevice('Stage').getMonitorRefreshRate();
+%                 disp(obj.time_multiple)
             catch
-                % Fallback safely if Stage device fails
                 obj.time_multiple = 1.0;
             end
             
@@ -112,6 +104,8 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
         
         % Create a Gaussian filter for the stimulus.
         function h = get_gaussian_filter(obj)
+%             kernel = fspecial('gaussian',[3,3],obj.filterSdStixels);
+            
             p2 = (2*ceil(2*obj.filterSdStixels)+1) * ones(1,2);
             siz   = (p2-1)/2;
             std   = obj.filterSdStixels;
@@ -158,12 +152,14 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
             
             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
                 @(state)state.time >= obj.preTime * 1e-3 && state.time < (obj.preTime + obj.stimTime) * 1e-3 * 1.011);
+%             gridVisible = stage.builtin.controllers.PropertyController(checkerboard, 'visible', ...
+%                 @(state)state.frame > obj.pre_frames && state.frame < (obj.pre_frames + obj.unique_frames + obj.repeat_frames));
             p.addController(gridVisible);
             
             % Calculate preFrames and stimFrames
             preF = floor(obj.preTime/1000 * 60);
 
-            if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter'))
+            if strcmpi(obj.stageClass, 'LightCrafter')
                 imgController = stage.builtin.controllers.PropertyController(checkerboard, 'imageMatrix',...
                     @(state)setStixelsPatternMode(obj, state.time - obj.preTime*1e-3));
             elseif ~strcmp(obj.chromaticClass,'achromatic')
@@ -188,7 +184,7 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
             
             % Position controller
             if obj.stepsPerStixel > 1
-                if ~isempty(strfind(obj.rig.getDevice('Stage').name, 'LightCrafter')) % Pattern mode
+                if strcmpi(obj.stageClass, 'LightCrafter') % Pattern mode
                     xyController = stage.builtin.controllers.PropertyController(checkerboard, 'position',...
                         @(state)setJitterPatternMode(obj, state.time - obj.preTime*1e-3));
                 else
@@ -202,15 +198,12 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        stepIdx = floor(frame / obj.frameDwell);
-                        if stepIdx < length(obj.noiseSequenceType)
-                            if obj.noiseSequenceType(stepIdx + 1) == 0
-                                M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
-                            else
-                                M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
-                            end
-                            M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
+                        if frame <= obj.unique_frames
+                            M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
+                        else
+                            M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1;
                         end
+                        M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
                     M = obj.imageMatrix;
@@ -237,16 +230,13 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        stepIdx = floor(frame / obj.frameDwell);
-                        if stepIdx < length(obj.noiseSequenceType)
-                            if obj.noiseSequenceType(stepIdx + 1) == 0
-                                M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
-                            else
-                                M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
-                            end
-                            M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
+                        if frame <= obj.unique_frames
+                            M = 2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
+                        else
+                            M = 2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,3)>0.5)-1;
                         end
                     end
+                    M = obj.contrast*M*obj.backgroundIntensity + obj.backgroundIntensity;
                 else
                     M = obj.imageMatrix;
                 end
@@ -258,18 +248,15 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        stepIdx = floor(frame / obj.frameDwell);
-                        if stepIdx < length(obj.noiseSequenceType)
-                            M = zeros(obj.numYStixels,obj.numXStixels,3);
-                            if obj.noiseSequenceType(stepIdx + 1) == 0
-                                tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
-                            else
-                                tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
-                            end
-                            tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
-                            M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
-                            M(:,:,3) = tmpM(:,:,2);
+                        M = zeros(obj.numYStixels,obj.numXStixels,3);
+                        if frame <= obj.unique_frames
+                            tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
+                        else
+                            tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels,2)>0.5)-1);
                         end
+                        tmpM = tmpM*obj.backgroundIntensity + obj.backgroundIntensity;
+                        M(:,:,1:2) = repmat(tmpM(:,:,1),[1,1,2]);
+                        M(:,:,3) = tmpM(:,:,2);
                     end
                 else
                     M = obj.imageMatrix;
@@ -283,19 +270,16 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
                 w = [0.8648,-0.3985,1];
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        stepIdx = floor(frame / obj.frameDwell);
-                        if stepIdx < length(obj.noiseSequenceType)
-                            M = zeros(obj.numYStixels,obj.numXStixels,3);
-                            if obj.noiseSequenceType(stepIdx + 1) == 0
-                                tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
-                            else
-                                tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
-                            end
-                            M(:,:,1) = tmpM*w(1);
-                            M(:,:,2) = tmpM*w(2);
-                            M(:,:,3) = tmpM*w(3);
-                            M = M*obj.backgroundIntensity + obj.backgroundIntensity;
+                        M = zeros(obj.numYStixels,obj.numXStixels,3);
+                        if frame <= obj.unique_frames
+                            tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
+                        else
+                            tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         end
+                        M(:,:,1) = tmpM*w(1);
+                        M(:,:,2) = tmpM*w(2);
+                        M(:,:,3) = tmpM*w(3);
+                        M = M*obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
                     M = obj.imageMatrix;
@@ -308,19 +292,16 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
                 persistent M;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        stepIdx = floor(frame / obj.frameDwell);
-                        if stepIdx < length(obj.noiseSequenceType)
-                            M = zeros(obj.numYStixels,obj.numXStixels,3);
-                            if obj.noiseSequenceType(stepIdx + 1) == 0
-                                tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
-                            else
-                                tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
-                            end
-                            M(:,:,1) = tmpM*obj.colorWeights(1);
-                            M(:,:,2) = tmpM*obj.colorWeights(2);
-                            M(:,:,3) = tmpM*obj.colorWeights(3);
-                            M = M * obj.backgroundIntensity + obj.backgroundIntensity;
+                        M = zeros(obj.numYStixels,obj.numXStixels,3);
+                        if frame <= obj.unique_frames
+                            tmpM = obj.contrast*(2*(obj.noiseStream.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
+                        else
+                            tmpM = obj.contrast*(2*(obj.noiseStreamRep.rand(obj.numYStixels,obj.numXStixels)>0.5)-1);
                         end
+                        M(:,:,1) = tmpM*obj.colorWeights(1);
+                        M(:,:,2) = tmpM*obj.colorWeights(2);
+                        M(:,:,3) = tmpM*obj.colorWeights(3);
+                        M = M * obj.backgroundIntensity + obj.backgroundIntensity;
                     end
                 else
                     M = obj.imageMatrix;
@@ -332,15 +313,12 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
                 persistent xy;
                 if frame > 0
                     if mod(frame, obj.frameDwell) == 0
-                        stepIdx = floor(frame / obj.frameDwell);
-                        if stepIdx < length(obj.noiseSequenceType)
-                            if obj.noiseSequenceType(stepIdx + 1) == 0
-                                xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
-                                    + obj.canvasSize / 2;
-                            else
-                                xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStreamRep.rand(1,2))) ...
-                                    + obj.canvasSize / 2;
-                            end
+                        if frame <= obj.unique_frames
+                            xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStream.rand(1,2))) ...
+                                + obj.canvasSize / 2;
+                        else
+                            xy = obj.stixelShiftPix*round((obj.stepsPerStixel-1)*(obj.positionStreamRep.rand(1,2))) ...
+                                + obj.canvasSize / 2;
                         end
                     end
                 else
@@ -366,7 +344,7 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
         end
 
         function prepareEpoch(obj, epoch)
-            prepareEpoch@common.protocols.CommonStageProtocol(obj, epoch);
+            prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
             
             % Remove the Amp responses if it's an MEA rig.
             if obj.isMeaRig
@@ -411,6 +389,7 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
             obj.stepsPerStixel = max(round(obj.stixelSize / obj.gridSize), 1);
             
             gridSizePix = obj.rig.getDevice('Stage').um2pix(obj.gridSize);
+%             gridSizePix = obj.gridSize/(10000.0/obj.rig.getDevice('Stage').um2pix(10000.0));
             obj.stixelSizePix = gridSizePix * obj.stepsPerStixel;
             obj.stixelShiftPix = obj.stixelSizePix / obj.stepsPerStixel;
             
@@ -422,44 +401,6 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
             
             disp(['num checks, x: ',num2str(obj.numXChecks),'; y: ',num2str(obj.numYChecks)]);
             disp(['num stixels, x: ',num2str(obj.numXStixels),'; y: ',num2str(obj.numYStixels)]);
-            
-            % --- SEQUENCE GENERATION ---
-            % Calculate steps
-            nBlocks = obj.numberOfRepeatBlocks;
-            if nBlocks < 1
-                nBlocks = 1; 
-            end
-            
-            % Determine steps per segment (convert ms to frames to steps)
-            uniqueSteps = floor(obj.unique_frames / double(obj.frameDwell));
-            repeatSteps = floor(obj.repeat_frames / double(obj.frameDwell));
-            
-            % Size of each repeat block
-            blockSize = floor(repeatSteps / nBlocks);
-            
-            % Distribute unique steps into nBlocks + 1 bins randomly
-            % We use the specific seed so the sequence is deterministic for this epoch
-            stream = RandStream('mt19937ar', 'Seed', obj.seed);
-            
-            if uniqueSteps > 0
-                r = rand(stream, 1, nBlocks + 1);
-                r = r / sum(r);
-                uniqueBinSizes = floor(r * uniqueSteps);
-                % Add remainder to the first bin to ensure sum is correct
-                uniqueBinSizes(1) = uniqueBinSizes(1) + (uniqueSteps - sum(uniqueBinSizes));
-            else
-                uniqueBinSizes = zeros(1, nBlocks + 1);
-            end
-
-            % Construct Mask (0 = Unique, 1 = Repeat)
-            mask = [];
-            for k = 1:nBlocks
-                mask = [mask, zeros(1, uniqueBinSizes(k)), ones(1, blockSize)];
-            end
-            % Add final unique bin
-            mask = [mask, zeros(1, uniqueBinSizes(nBlocks+1))];
-            
-            obj.noiseSequenceType = mask;
             
             % Seed the generator
             obj.noiseStream = RandStream('mt19937ar', 'Seed', obj.seed);
@@ -481,50 +422,17 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
             epoch.addParameter('pre_frames', obj.pre_frames);
             epoch.addParameter('unique_frames', obj.unique_frames);
             epoch.addParameter('repeat_frames', obj.repeat_frames);
-            epoch.addParameter('numberOfRepeatBlocks', nBlocks);
-            epoch.addParameter('noiseSequenceType', obj.noiseSequenceType);
-            
-            % --- VERIFICATION: PRINT BLOCKS TO CONSOLE ---
-            % Calculate frame rate (approximate if not strictly defined, usually 60)
-            fr = obj.rig.getDevice('Stage').getMonitorRefreshRate();
-            if isempty(fr), fr = 60.0; end
-            
-            % Find start and end indices of repeat blocks (where mask == 1)
-            % diff([0 mask 0]) gives 1 at start of block, -1 at end of block
-            diffMask = diff([0, obj.noiseSequenceType, 0]);
-            startIdx = find(diffMask == 1);
-            endIdx = find(diffMask == -1) - 1;
-            
-            fprintf('\n--- INTERLEAVED REPEAT VERIFICATION ---\n');
-            fprintf('Total Steps: %d | Frame Dwell: %d\n', length(obj.noiseSequenceType), obj.frameDwell);
-            
-            for k = 1:length(startIdx)
-                s = startIdx(k);
-                e = endIdx(k);
-                
-                % Convert Step Index to Frame Number (1-based)
-                startFrame = (s-1) * double(obj.frameDwell) + 1;
-                endFrame = e * double(obj.frameDwell);
-                
-                % Convert Frame to Seconds
-                startTime = (startFrame-1) / fr;
-                endTime = endFrame / fr;
-                
-                fprintf('Repeat Block %d: Steps %d-%d | Time: %.2fs - %.2fs (Dur: %.2fs)\n', ...
-                    k, s, e, startTime, endTime, endTime-startTime);
-            end
-            fprintf('---------------------------------------\n\n');
         end
         
-        % function a = get.amp2(obj) \\ defined in CommonProtocol A_N_
-        %     amps = obj.rig.getDeviceNames('Amp');
-        %     if numel(amps) < 2
-        %         a = '(None)';
-        %     else
-        %         i = find(~ismember(amps, obj.amp), 1);
-        %         a = amps{i};
-        %     end
-        % end
+        function a = get.amp2(obj)
+            amps = obj.rig.getDeviceNames('Amp');
+            if numel(amps) < 2
+                a = '(None)';
+            else
+                i = find(~ismember(amps, obj.amp), 1);
+                a = amps{i};
+            end
+        end
         
         function stimTime = get.stimTime(obj)
             stimTime = obj.uniqueTime + obj.repeatTime;
@@ -539,7 +447,7 @@ classdef SpatialNoise_ks < common.protocols.CommonStageProtocol
         end
         
         function completeRun(obj)
-            completeRun@common.protocols.CommonStageProtocol(obj);
+            completeRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
             % Reset the Gamma back to the original.
             if obj.gaussianFilter
                 obj.rig.getDevice('Stage').setMonitorGammaRamp(obj.monitor_gamma(1,:), obj.monitor_gamma(2,:), obj.monitor_gamma(3,:));

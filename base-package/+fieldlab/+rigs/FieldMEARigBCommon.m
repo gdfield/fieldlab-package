@@ -1,12 +1,13 @@
-classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
+classdef FieldMEARigBCommon < symphonyui.core.descriptions.RigDescription
     
     methods
         
-        function obj = FieldMEARigB()
+        function obj = FieldMEARigBCommon()
             import symphonyui.builtin.daqs.*;
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;
-            import edu.washington.*;
+            import common.*;
+            %import edu.washington.*;
 
                      
              % SIMULATION
@@ -32,7 +33,7 @@ classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
               frameMonitor = UnitConvertingDevice('Frame Monitor', 'V').bindStream(obj.daqController.getStream('ai1'));
               obj.addDevice(frameMonitor);            
              
-             mea = manookinlab.devices.MEADevice(9001);
+             mea = common.devices.MEADevice(5678);
              obj.addDevice(mea);
             
              %add an analog trigger device to simulate the MEA.
@@ -61,10 +62,11 @@ classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
             ramps('blue')   = 65535 * importdata(fieldlab.Package.getCalibrationResource('rigs', 'FieldMEARig1', 'channel_3_blue_gamma_ramp.txt'));     
 
              % This connects to Stage as a device. 
-             lightCrafter = manookinlab.devices.LcrVideoDevice(...
+             lightCrafter = common.devices.LightCrafterDevice(...
                 'micronsPerPixel', 4.5, ...
                 'host', '192.168.0.3', ...
-                'gammaRamps', ramps, ...
+                'port',5678,...
+                'mode', 'pattern',...
                 'local_movie_directory','C:\Users\local-admin\Documents\GitRepos\Symphony2\movies\',...
                 'stage_movie_directory','\\Ravel\Users\local-admin\Documents\GitRepos\Symphony2\movies\');
             
@@ -121,11 +123,11 @@ classdef FieldMEARigB < symphonyui.core.descriptions.RigDescription
             obj.addDevice(lightCrafter);    
             
            %  % Add the filter wheel (motorized filter wheel from ThorLabs)
-           % filterWheel = edu.washington.riekelab.devices.FilterWheelDevice('comPort', 'COM3', 'ndfValues', [1.0, 2.0, 3.0, 4.0, 5.0, 0]);
+           filterWheel = common.devices.FilterWheelDevice('comPort', 'COM3', 'ndfValues', [1.0, 2.0, 3.0, 4.0, 5.0, 0]);
            % 
            % % Binding the filter wheel to an unused stream only so its configuration settings are written to each epoch.
            %  filterWheel.bindStream(daq.getStream('doport0'));
-           %  daq.getStream('doport0').setBitPosition(filterWheel, 7);
+           %  daq.getStream('doport0').setBitPosition(filterWheel, 3);
            %  obj.addDevice(filterWheel); 
         end
     end    

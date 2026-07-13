@@ -1,4 +1,4 @@
-classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
+classdef StrictGaborRain_ks < common.protocols.CommonStageProtocol
     
     properties
         amp                             % Output amplifier
@@ -28,7 +28,7 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
     end
     
     properties (Hidden)
-        ampType
+        %ampType \\  defined in CommonProtocol A_N_
         onlineAnalysis = 'none'
         noiseSeed
         noiseStream
@@ -56,12 +56,12 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
     methods
         
         function didSetRig(obj)
-            didSetRig@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            didSetRig@common.protocols.CommonStageProtocol(obj);
             [obj.amp, obj.ampType] = obj.createDeviceNamesProperty('Amp');
         end
         
         function prepareRun(obj)
-            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            prepareRun@common.protocols.CommonStageProtocol(obj);
             
             if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
@@ -88,7 +88,7 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function prepareEpoch(obj, epoch)
-            prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            prepareEpoch@common.protocols.CommonStageProtocol(obj, epoch);
             
             % 1. SEEDING (Reproducible Randomness)
             obj.noiseSeed = double(RandStream.shuffleSeed);
@@ -352,7 +352,7 @@ classdef StrictGaborRain_ks < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function completeEpoch(obj, epoch)
-            completeEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            completeEpoch@common.protocols.CommonStageProtocol(obj, epoch);
             
             % --- SAVE HISTORY TO HDF5 ---
             c = obj.historyCount;

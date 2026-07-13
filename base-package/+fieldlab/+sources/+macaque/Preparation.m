@@ -1,4 +1,4 @@
-classdef Preparation < manookinlab.sources.Preparation
+classdef Preparation < fieldlab.sources.Preparation
     
     methods
         
