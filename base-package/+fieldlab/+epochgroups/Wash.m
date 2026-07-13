@@ -1,4 +1,4 @@
-classdef Wash < FieldLab.epochgroups.EpochGroup
+classdef Wash < fieldlab.epochgroups.EpochGroup
     
     methods
         

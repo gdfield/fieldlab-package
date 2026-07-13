@@ -1,4 +1,4 @@
-classdef Primate < manookinlab.sources.Subject
+classdef Primate < fieldlab.sources.Subject
     
     methods
         

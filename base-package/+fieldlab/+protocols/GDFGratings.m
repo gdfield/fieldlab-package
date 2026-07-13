@@ -1,4 +1,4 @@
-classdef GDFGratings < manookinlab.protocols.ManookinLabStageProtocol
+classdef GDFGratings < common.protocols.CommonStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Grating leading duration (ms)
@@ -21,7 +21,7 @@ classdef GDFGratings < manookinlab.protocols.ManookinLabStageProtocol
     end
     
     properties (Hidden)
-        ampType
+        %ampType \\  defined in CommonProtocol A_N_
         apertureClassType = symphonyui.core.PropertyType('char', 'row', {'spot', 'annulus'})
         spatialClassType = symphonyui.core.PropertyType('char', 'row', {'sinewave', 'squarewave'})
         temporalClassType = symphonyui.core.PropertyType('char', 'row', {'drifting', 'reversing'})
@@ -50,7 +50,7 @@ classdef GDFGratings < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function prepareRun(obj)
-            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            prepareRun@common.protocols.CommonStageProtocol(obj);
             
             if ~obj.isMeaRig
                 obj.showFigure('symphonyui.builtin.figures.ResponseFigure', obj.rig.getDevice(obj.amp));
@@ -204,7 +204,7 @@ classdef GDFGratings < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function prepareEpoch(obj, epoch)
-            prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            prepareEpoch@common.protocols.CommonStageProtocol(obj, epoch);
             
             % Remove the Amp responses if it's an MEA rig.
             if obj.isMeaRig
