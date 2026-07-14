@@ -1,20 +1,21 @@
-classdef PatchA < symphonyui.core.descriptions.RigDescription
-    % Two-amplifier patch rig (HEKA ITC DAQ, two MultiClamp 700B channels).
+classdef PatchASim < symphonyui.core.descriptions.RigDescription
+    % Simulated version of the PatchA rig for testing.
     %
-    % Follows the standard Symphony3 pattern: hardware is defined in the
-    % class constructor (which Symphony calls when the rig is initialized),
-    % not in a separate createRig method.
+    % Identical to PatchA except it uses the simulated HEKA DAQ controller
+    % (HekaSimulationDaqController), so it requires no attached ITC hardware.
+    % The MultiClamp devices still talk to MultiClamp Commander, which can be
+    % run in demo mode.
 
     methods
 
-        function obj = PatchA()
+        function obj = PatchASim()
             import symphonyui.builtin.daqs.*;
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;
             import common.*;
 
-            %% DAQ controller (HEKA ITC)
-            daq = HekaDaqController();
+            %% DAQ controller (simulated HEKA ITC -- no hardware required)
+            daq = HekaSimulationDaqController();
             obj.daqController = daq;
 
             % Digital stream the filter wheels (and the disabled LED / scope
@@ -37,7 +38,9 @@ classdef PatchA < symphonyui.core.descriptions.RigDescription
             % (COM12, COM10, COM11); ndfValues left at the device default.
             % Each wheel is driven over its serial (COM) port; the bindStream
             % to digitalStream1 only logs its configuration to each epoch, so
-            % every wheel needs a UNIQUE bit position.
+            % every wheel needs a UNIQUE bit position. On this sim rig a wheel
+            % whose COM port is absent simply stays disconnected (isOpen=false)
+            % without blocking rig initialization.
             filterWheel1 = fieldlab.devices.FilterWheelDevice( ...
                 'name', 'Filter Wheel 1', ...
                 'comPort', 'COM12', ...              % TODO: confirm COM port
@@ -179,18 +182,17 @@ classdef PatchA < symphonyui.core.descriptions.RigDescription
             %   );
             % obj.addDevice(scope);
             %
-            %% Temperature controller (Warner Instruments TC-324)
+            %% Temperature controller (Warner Instruments TC-324) -- disabled on sim
             % Standard form expected by common.protocols.CommonProtocol, which
             % reads a device named 'Temperature Controller' (in volts) and logs
-            % bathTemperature at 100 mV/degree C. This replaces the old
-            % GenericDevice('TC-324C', ...) approach, which used a class that
-            % does not exist and a name/units the base protocol cannot consume.
+            % bathTemperature at 100 mV/degree C. Left commented out on the sim
+            % rig; enable it in PatchA (the hardware rig).
             %
             % TODO: CONFIRM the analog input channel the Warner controller is
             % wired to. 'ai4' below is a PLACEHOLDER -- the amps already use
             % ai0/ai1, so verify the real channel before recording.
-            temperature = UnitConvertingDevice('Temperature Controller', 'V', 'manufacturer', 'Warner Instruments').bindStream(daq.getStream('ai4'));
-            obj.addDevice(temperature);
+            % temperature = UnitConvertingDevice('Temperature Controller', 'V', 'manufacturer', 'Warner Instruments').bindStream(daq.getStream('ai4'));
+            % obj.addDevice(temperature);
 
         end
     end
