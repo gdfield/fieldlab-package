@@ -4,7 +4,7 @@ classdef Alignment_ks < manookinlab.protocols.ManookinLabStageProtocol
         amp                             % Output amplifier
         preTime = 250                   % Time before stimulus (ms)
         stimTime = 10000                % How long to hold the alignment pattern (ms)
-        tailTime = 250                  % Time after stimulus (ms)
+        tailTime = 0                  % Time after stimulus (ms)
         
         intensity = 1.0                 % Intensity of the white squares (0-1)
         numberOfAverages = uint16(1)    % Number of epochs
@@ -67,8 +67,8 @@ classdef Alignment_ks < manookinlab.protocols.ManookinLabStageProtocol
             end
 
             % Move center left by half the photodiode bar width so the pattern centers in usable area.
-            checkerboard.position = [ obj.canvasSize(1)/2 - BW/2, obj.canvasSize(2)/2 ];
-
+            %checkerboard.position = [ obj.canvasSize(1)/2 - BW/2, obj.canvasSize(2)/2 ];
+            checkerboard.position = [ obj.canvasSize(1)/2, obj.canvasSize(2)/2 ]
             
             % SHARPEN IT
             % GL.NEAREST ensures strict, sharp edges (no blurring)
