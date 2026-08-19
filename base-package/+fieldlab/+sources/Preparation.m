@@ -3,7 +3,7 @@ classdef (Abstract) Preparation < symphonyui.core.persistent.descriptions.Source
     methods
         
         function obj = Preparation()
-            import symphonyui.core.*;
+            import symphonyui.core.*;         
             
             obj.addProperty('time', datestr(now), ...
                 'type', PropertyType('char', 'row', 'datestr'), ...
@@ -15,10 +15,10 @@ classdef (Abstract) Preparation < symphonyui.core.persistent.descriptions.Source
                 'isPreferred', true);
             obj.addResource('photoreceptorOrientations', containers.Map( ...
                 {'shredded retina', 'whole mount, cones up', 'whole mount, RGCs up', 'RPE attached', 'slice'}, ...
-                {'lateral',         'up',                    'down',                 'down',         'lateral'})); 
+                {'lateral',         'up',                    'down',                 'down',         'lateral'}));
             obj.addProperty('bathSolution', 'Ames', ...
                 'type', PropertyType('char', 'row', {'', 'Ames'}), ...
-                'description', 'The solution the preparation is bathed in');   
+                'description', 'The solution the preparation is bathed in');
         end
         
     end

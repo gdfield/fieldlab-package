@@ -27,11 +27,15 @@ classdef BattleStation < symphonyui.core.descriptions.RigDescription
             % for setting rig-specific parameters. Also, if the user
             % forgets to save the rig description, you will automatically
             % have a record of it saved in your data file.
-            rigDev = manookinlab.devices.RigPropertyDevice('FieldLab','BattleStation');
+            rigDev = common.devices.RigPropertyDevice('FieldLab','BattleStation');
             obj.addDevice(rigDev);
             
             % This connects to Stage as a device. 
-            display_device = manookinlab.devices.VideoDevice('host', '10.4.192.108', 'micronsPerPixel', 2.0);         
+<<<<<<< HEAD
+            display_device = common.devices.VideoDevice('host', '192.168.1.2', 'port', 5678, 'micronsPerPixel', 2.0);
+=======
+            display_device = common.devices.VideoDevice('host', '192.168.0.3', 'port', 5678, 'micronsPerPixel', 2.0);         
+>>>>>>> e8d3d81e00464fe25464a7a9cb3ed682af86791c
 
             obj.addDevice(display_device);
                       

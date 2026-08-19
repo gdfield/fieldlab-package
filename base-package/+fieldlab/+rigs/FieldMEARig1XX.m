@@ -1,8 +1,10 @@
-classdef FieldMEARigA < symphonyui.core.descriptions.RigDescription
+%classdef FieldMEARigA < symphonyui.core.descriptions.RigDescription
+classdef FieldMEARig1XX < symphonyui.core.descriptions.RigDescription
     
     methods
         
-        function obj = FieldMEARigA()
+        %function obj = FieldMEARigA()
+        function obj = FieldMEARig1XX()
             import symphonyui.builtin.daqs.*;
             import symphonyui.builtin.devices.*;
             import symphonyui.core.*;

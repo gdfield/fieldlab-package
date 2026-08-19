@@ -1,4 +1,4 @@
-classdef CheckerboardNoise < manookinlab.protocols.ManookinLabStageProtocol
+classdef CheckerboardNoise < common.protocols.CommonStageProtocol
     properties
         amp                             % Output amplifier
         preTime = 250                   % Noise leading duration (ms)
@@ -22,7 +22,7 @@ classdef CheckerboardNoise < manookinlab.protocols.ManookinLabStageProtocol
     end
     
     properties (Hidden)
-        ampType
+        %ampType \\ defined in CommonProtocol A_N_
         onlineAnalysisType = symphonyui.core.PropertyType('char', 'row', {'none', 'extracellular', 'spikes_CClamp', 'subthresh_CClamp', 'analog'})
         chromaticClassType = symphonyui.core.PropertyType('char','row',{'achromatic','RGB','BY'})
         stixelSizesType = symphonyui.core.PropertyType('denserealdouble','matrix')
@@ -47,18 +47,18 @@ classdef CheckerboardNoise < manookinlab.protocols.ManookinLabStageProtocol
     end
     
     properties (Dependent, SetAccess = private)
-        amp2                            % Secondary amplifier
+        %amp2                            % Secondary amplifier \\  defined in CommonProtocol A_N_
     end
     
     methods
         function didSetRig(obj)
-            didSetRig@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            didSetRig@common.protocols.CommonStageProtocol(obj);
 
             [obj.amp, obj.ampType] = obj.createDeviceNamesProperty('Amp');
         end
 
         function prepareRun(obj)
-            prepareRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            prepareRun@common.protocols.CommonStageProtocol(obj);
             
             % Get the number of frames.
             obj.numFrames = floor(obj.stimTime * 1e-3 * obj.frameRate)+15;
@@ -229,7 +229,7 @@ classdef CheckerboardNoise < manookinlab.protocols.ManookinLabStageProtocol
         end
 
         function prepareEpoch(obj, epoch)
-            prepareEpoch@manookinlab.protocols.ManookinLabStageProtocol(obj, epoch);
+            prepareEpoch@common.protocols.CommonStageProtocol(obj, epoch);
             
             % Get the current stixel size.
             obj.stixelSize = obj.stixelSizes(mod(obj.numEpochsCompleted, length(obj.stixelSizes))+1);
@@ -276,15 +276,15 @@ classdef CheckerboardNoise < manookinlab.protocols.ManookinLabStageProtocol
             epoch.addParameter('frameDwell', obj.frameDwell);
         end
         
-        function a = get.amp2(obj)
-            amps = obj.rig.getDeviceNames('Amp');
-            if numel(amps) < 2
-                a = '(None)';
-            else
-                i = find(~ismember(amps, obj.amp), 1);
-                a = amps{i};
-            end
-        end
+        % function a = get.amp2(obj) \\  defined in CommonProtocol A_N_
+        %     amps = obj.rig.getDeviceNames('Amp');
+        %     if numel(amps) < 2
+        %         a = '(None)';
+        %     else
+        %         i = find(~ismember(amps, obj.amp), 1);
+        %         a = amps{i};
+        %     end
+        % end
         
         function stimTime = get.stimTime(obj)
             stimTime = obj.uniqueTime + obj.repeatTime;
@@ -299,7 +299,7 @@ classdef CheckerboardNoise < manookinlab.protocols.ManookinLabStageProtocol
         end
         
         function completeRun(obj)
-            completeRun@manookinlab.protocols.ManookinLabStageProtocol(obj);
+            completeRun@common.protocols.CommonStageProtocol(obj);
             % Reset the Gamma back to the original.
             if obj.gaussianFilter
                 obj.rig.getDevice('Stage').setMonitorGammaRamp(obj.monitor_gamma(1,:), obj.monitor_gamma(2,:), obj.monitor_gamma(3,:));
