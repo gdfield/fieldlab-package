@@ -1,6 +1,7 @@
 classdef SyncedFilterWheelDevice < fieldlab.devices.FilterWheelDevice
     % Filter wheel that mirrors its physical ND value onto a light-source
-    % device's 'ndfs' configuration setting.
+    % device's 'ndfs' configuration setting, and records the resolved optical
+    % density used in the calibration.
     %
     % Why: the isomerization calibration (common.util.convisom, the
     % IsomerizationsConverter module, and addConversionFactors) reads the active
@@ -18,6 +19,17 @@ classdef SyncedFilterWheelDevice < fieldlab.devices.FilterWheelDevice
     %     on the light source it is kept; the wheel only owns the FWxx entry.
     %   * ND value 0 (open position) mirrors to no FWxx entry.
     %
+    % Optical density recording: the epoch h5 stores the ACTIVE ndf NAMES
+    % ('turret', 'FW30', ...), while the measured attenuations live in the light
+    % source's 'ndfAttenuations' resource. To make the actual attenuation
+    % self-contained per epoch, this device also maintains read-only
+    % configuration settings 'ndfOD_<channel>' (e.g. ndfOD_auto, ndfOD_red,
+    % ndfOD_green, ndfOD_blue) holding the summed optical density of all active
+    % NDFs (turret + wheel) for each channel. Because this device is bound to a
+    % stream in the rig, those settings are written to every epoch. The values
+    % track any change to the light source's 'ndfs' (wheel move OR a manual
+    % turret toggle in the Device Configurator). Attenuation factor = 10^-OD.
+    %
     % Reverting: construct a plain FilterWheelDevice instead (see the
     % 'useWheelSync' flag in the rig files). This class then simply goes unused.
     %
@@ -28,6 +40,7 @@ classdef SyncedFilterWheelDevice < fieldlab.devices.FilterWheelDevice
 
     properties (Access = private)
         lightSource = []
+        ndfsListener = []
     end
 
     methods
@@ -40,6 +53,7 @@ classdef SyncedFilterWheelDevice < fieldlab.devices.FilterWheelDevice
             % Register the light-source device whose 'ndfs' setting mirrors the
             % wheel. Pass [] to disable syncing (device behaves like the base).
             obj.lightSource = device;
+            obj.setupOpticalDensityRecording();
         end
 
         function setNDF(obj, nd)
@@ -89,6 +103,73 @@ classdef SyncedFilterWheelDevice < fieldlab.devices.FilterWheelDevice
             catch e
                 warning('SyncedFilterWheelDevice:syncFailed', ...
                     'Failed to mirror wheel NDF onto light source: %s', e.message);
+            end
+        end
+
+        function setupOpticalDensityRecording(obj)
+            % Declare one read-only 'ndfOD_<channel>' setting per channel and
+            % start tracking the light source's 'ndfs' so they stay current.
+            % Runs during rig construction, so any failure degrades to "no OD
+            % recording" rather than breaking rig load.
+            if ~isempty(obj.ndfsListener)
+                delete(obj.ndfsListener);
+                obj.ndfsListener = [];
+            end
+            if isempty(obj.lightSource) ...
+                    || ~any(strcmp('ndfAttenuations', obj.lightSource.getResourceNames()))
+                return;
+            end
+            try
+                channels = obj.lightSource.getResource('ndfAttenuations').keys;
+                for i = 1:numel(channels)
+                    name = ['ndfOD_' channels{i}];
+                    if ~obj.hasConfigurationSetting(name)
+                        obj.addConfigurationSetting(name, 0, 'isReadOnly', true);
+                    end
+                end
+
+                obj.ndfsListener = addlistener(obj.lightSource, 'SetConfigurationSetting', ...
+                    @(~, event)obj.onLightSourceConfigChanged(event));
+
+                obj.updateOpticalDensity();
+            catch e
+                warning('SyncedFilterWheelDevice:odSetupFailed', ...
+                    'Failed to set up NDF optical density recording: %s', e.message);
+            end
+        end
+
+        function onLightSourceConfigChanged(obj, event)
+            if strcmp(event.data.name, 'ndfs')
+                obj.updateOpticalDensity();
+            end
+        end
+
+        function updateOpticalDensity(obj)
+            % Sum the measured optical density of every active NDF (turret +
+            % wheel) for each channel and record it on this device.
+            if isempty(obj.lightSource) ...
+                    || ~any(strcmp('ndfAttenuations', obj.lightSource.getResourceNames()))
+                return;
+            end
+            try
+                attenuations = obj.lightSource.getResource('ndfAttenuations');
+                ndfs = obj.lightSource.getConfigurationSetting('ndfs');
+                channels = attenuations.keys;
+                for i = 1:numel(channels)
+                    ch = channels{i};
+                    map = attenuations(ch);
+                    od = 0;
+                    for j = 1:numel(ndfs)
+                        nm = strtrim(ndfs{j});
+                        if map.isKey(nm)
+                            od = od + map(nm);
+                        end
+                    end
+                    obj.setReadOnlyConfigurationSetting(['ndfOD_' ch], od);
+                end
+            catch e
+                warning('SyncedFilterWheelDevice:odUpdateFailed', ...
+                    'Failed to record NDF optical density: %s', e.message);
             end
         end
 
