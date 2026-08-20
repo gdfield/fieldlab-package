@@ -22,6 +22,7 @@ classdef FilterWheelDevice < symphonyui.core.Device
         filterWheel
         ndfValues % = [0 0.5 1.0 2.0 3.0 4.0];
         isOpen
+        useLegacySerial = false  % true when connected via the legacy serial() API
     end
 
     methods
@@ -53,32 +54,64 @@ classdef FilterWheelDevice < symphonyui.core.Device
         end
 
         function connect(obj, comPort)
+            % Prefer the modern serialport() API; fall back to the legacy
+            % serial() API on setups (e.g. FieldMEARig1) where serialport()
+            % cannot open the port but serial() can.
             try
                 obj.filterWheel = serialport(comPort, 115200, ...
                     'DataBits', 8, 'StopBits', 1, 'Timeout', 5);
                 configureTerminator(obj.filterWheel, 'CR');
+                obj.useLegacySerial = false;
                 obj.isOpen = true;
             catch
-                obj.isOpen = false;
+                try
+                    obj.filterWheel = serial(comPort, 'BaudRate', 115200, ...
+                        'DataBits', 8, 'StopBits', 1, 'Terminator', 'CR'); %#ok<SERIAL>
+                    fopen(obj.filterWheel);
+                    obj.useLegacySerial = true;
+                    obj.isOpen = true;
+                catch
+                    obj.isOpen = false;
+                end
             end
         end
 
         function close(obj)
             if obj.isOpen
                 try
-                    delete(obj.filterWheel);
+                    if obj.useLegacySerial
+                        fclose(obj.filterWheel);
+                    else
+                        delete(obj.filterWheel);
+                    end
                 catch
                 end
                 obj.isOpen = false;
             end
         end
 
+        function tf = isConnected(obj)
+            tf = ~isempty(obj.isOpen) && obj.isOpen;
+        end
+
         function moveWheel(obj, position)
-            writeline(obj.filterWheel, ['pos=' num2str(position)]);
+            if ~obj.isConnected()
+                return;
+            end
+            if obj.useLegacySerial
+                fprintf(obj.filterWheel, ['pos=' num2str(position) '\n']);
+            else
+                writeline(obj.filterWheel, ['pos=' num2str(position)]);
+            end
             obj.wheelPosition = position;
         end
 
         function setNDF(obj, nd)
+            if ~obj.isConnected()
+                warning('FilterWheelDevice:notConnected', ...
+                    '%s is not connected; NDF not changed.', obj.name);
+                return;
+            end
             try
                 obj.moveWheel(find(obj.ndfValues == nd, 1));
                 obj.setReadOnlyConfigurationSetting('NDF', nd);
@@ -96,9 +129,14 @@ classdef FilterWheelDevice < symphonyui.core.Device
         end
 
         function position = getCurrentPosition(obj)
-            if obj.isOpen
-                writeline(obj.filterWheel, 'pos=?');
-                position = readline(obj.filterWheel);
+            if obj.isConnected()
+                if obj.useLegacySerial
+                    fprintf(obj.filterWheel, 'pos=?\n');
+                    position = fscanf(obj.filterWheel);
+                else
+                    writeline(obj.filterWheel, 'pos=?');
+                    position = readline(obj.filterWheel);
+                end
             end
         end
     end

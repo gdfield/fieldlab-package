@@ -44,8 +44,12 @@ classdef SyncedFilterWheelDevice < fieldlab.devices.FilterWheelDevice
 
         function setNDF(obj, nd)
             % Move the wheel (base behaviour), then mirror onto the light source.
+            % Only mirror when the wheel is actually connected, so a disconnected
+            % wheel never rewrites the calibration ndfs.
             setNDF@fieldlab.devices.FilterWheelDevice(obj, nd);
-            obj.syncLightSourceNdfs(nd);
+            if obj.isConnected()
+                obj.syncLightSourceNdfs(nd);
+            end
         end
 
     end
